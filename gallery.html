@@ -294,7 +294,14 @@
       <div class="modal-card" role="dialog" aria-modal="true">
         <button id="galleryClose" class="modal-close" type="button" aria-label="Close">×</button>
         <div class="modal-image">
-          <img id="modalImage" src="" alt="Gallery image" />
+          <img
+            id="modalImage"
+            src=""
+            alt="Gallery image"
+            loading="lazy"
+            crossorigin="anonymous"
+            referrerpolicy="no-referrer"
+          />
         </div>
         <div id="modalPrompt" class="modal-prompt"></div>
       </div>
@@ -319,8 +326,8 @@
         columnHeights: [],
       };
       const renderedFigures = [];
-      let nextLayoutIndex = 0;
       let resizeTimer;
+      let relayoutTimer;
 
       const getColumnCount = () => {
         if (!galleryGrid) {
@@ -360,6 +367,28 @@
         galleryGrid.style.height = "0px";
       };
 
+      const getImageAspectRatio = (item) => {
+        if (!item) {
+          return null;
+        }
+        const width = Number.parseInt(item.width, 10);
+        const height = Number.parseInt(item.height, 10);
+        if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+          return null;
+        }
+        return `${width} / ${height}`;
+      };
+
+      const setFigureBaseSize = (figure) => {
+        if (!figure) {
+          return;
+        }
+        const { columnWidth } = layoutState;
+        if (columnWidth) {
+          figure.style.width = `${columnWidth}px`;
+        }
+      };
+
       const placeItem = (figure) => {
         if (!galleryGrid) {
           return;
@@ -380,21 +409,36 @@
         galleryGrid.style.height = `${maxHeight}px`;
       };
 
-      const layoutReadyItems = () => {
-        while (nextLayoutIndex < renderedFigures.length) {
-          const figure = renderedFigures[nextLayoutIndex];
-          if (!figure.dataset.ready) {
-            break;
-          }
-          placeItem(figure);
-          nextLayoutIndex += 1;
+      const placeIfReady = (figure) => {
+        if (!figure || !figure.dataset.ready || figure.dataset.placed) {
+          return;
         }
+        placeItem(figure);
+        figure.dataset.placed = "true";
+      };
+
+      const layoutReadyItems = () => {
+        renderedFigures.forEach((figure) => {
+          placeIfReady(figure);
+        });
       };
 
       const relayoutAll = () => {
         initLayout();
-        nextLayoutIndex = 0;
+        renderedFigures.forEach((figure) => {
+          figure.dataset.placed = "";
+          setFigureBaseSize(figure);
+        });
         layoutReadyItems();
+      };
+
+      const scheduleRelayout = () => {
+        if (relayoutTimer) {
+          cancelAnimationFrame(relayoutTimer);
+        }
+        relayoutTimer = requestAnimationFrame(() => {
+          relayoutAll();
+        });
       };
 
       const updateStatus = (text, isLoading = false) => {
@@ -420,15 +464,22 @@
           img.src = item.image_path;
           img.alt = item.prompt.slice(0, 80);
           img.loading = "lazy";
+          img.crossOrigin = "anonymous";
+          img.referrerPolicy = "no-referrer";
           img.addEventListener("load", () => {
             figure.classList.add("loaded");
             figure.dataset.ready = "true";
-            layoutReadyItems();
+            if (img.naturalWidth && img.naturalHeight) {
+              figure.style.aspectRatio = `${img.naturalWidth} / ${img.naturalHeight}`;
+            }
+            figure.dataset.placed = "";
+            scheduleRelayout();
           });
           img.addEventListener("error", () => {
             figure.classList.add("loaded");
             figure.dataset.ready = "true";
-            layoutReadyItems();
+            figure.dataset.placed = "";
+            scheduleRelayout();
           });
           figure.appendChild(img);
           figure.addEventListener("click", () => openModal(item));
@@ -442,7 +493,14 @@
             figure.classList.remove("pressed");
           });
           figure.dataset.index = String(figureIndex);
+          setFigureBaseSize(figure);
+          const aspectRatio = getImageAspectRatio(item);
+          if (aspectRatio) {
+            figure.style.aspectRatio = aspectRatio;
+            figure.dataset.ready = "true";
+          }
           galleryGrid.appendChild(figure);
+          placeIfReady(figure);
         });
         galleryIndex += slice.length;
         if (galleryIndex >= galleryItems.length) {
