@@ -1,1 +1,2490 @@
-hello world
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BitDance: Scaling Autoregressive Generative Models with Binary Tokens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #0f1115;
+        --bg-card: #141823;
+        --bg-soft: #f3f5f9;
+        --text: #0b0f1a;
+        --text-invert: #f8f9fc;
+        --text-muted: #5e6675;
+        --accent: #3b5bfd;
+        --accent-strong: #2e4bf0;
+        --border: #e4e7ee;
+        --shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+        --radius: 14px;
+        --content-width: 920px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text);
+        background: #fbfcff;
+        line-height: 1.7;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      .container {
+        width: min(1200px, 92vw);
+        margin: 0 auto;
+      }
+      .section .container {
+        width: min(var(--content-width), 92vw);
+        margin: 0 auto;
+      }
+      header {
+        background: radial-gradient(circle at top left, #1a2040 0%, #0f1115 50%, #0b0d12 100%);
+        color: var(--text-invert);
+        padding: 56px 0 70px;
+        position: relative;
+        overflow: hidden;
+      }
+      header::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(135deg, rgba(91, 140, 255, 0.25), transparent 55%);
+        pointer-events: none;
+      }
+      .title-block {
+        position: relative;
+        z-index: 1;
+        max-width: 1020px;
+        margin: 0;
+      }
+      .title-block h1 {
+        font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: clamp(2.4rem, 3vw + 1.4rem, 3.5rem);
+        line-height: 1.1;
+        margin-bottom: 18px;
+        letter-spacing: -0.02em;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        margin-bottom: 20px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 18px;
+        border-radius: 999px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+      }
+      .button.primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .button.primary:hover {
+        background: var(--accent-strong);
+      }
+      .button.ghost {
+        border-color: rgba(248, 249, 252, 0.4);
+        color: #fff;
+      }
+      .section {
+        padding: 88px 0;
+      }
+      .section.light {
+        background: var(--bg-soft);
+      }
+      .section h2 {
+        font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: clamp(1.9rem, 1.2vw + 1.4rem, 2.4rem);
+        margin-bottom: 18px;
+        letter-spacing: -0.01em;
+      }
+      .section p {
+        color: var(--text-muted);
+        font-size: 1.02rem;
+      }
+      .section pre {
+        background: #eef1f7;
+        padding: 16px 18px;
+        overflow-x: auto;
+      }
+      .code-block {
+        position: relative;
+      }
+      .copy-button {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        border: 1px solid #d7dbe6;
+        background: #ffffff;
+        color: var(--text);
+        width: 34px;
+        height: 34px;
+        border-radius: 999px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+      }
+      .copy-button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+      }
+      .copy-button svg {
+        width: 16px;
+        height: 16px;
+      }
+      .section pre code {
+        color: var(--text);
+        font-family: "SFMono-Regular", SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+        font-size: 0.95rem;
+        line-height: 1.6;
+        white-space: pre;
+        display: block;
+      }
+      #method h4 {
+        font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        margin-top: 18px;
+        margin-bottom: 10px;
+        letter-spacing: -0.01em;
+      }
+      #method h4:first-of-type {
+        margin-top: 12px;
+      }
+      #method .figure {
+        margin: 10px 0 18px;
+      }
+      .grid {
+        display: grid;
+        gap: 22px;
+      }
+      .grid.two {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      }
+      .grid.three {
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      }
+      .card {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 22px;
+        box-shadow: none;
+      }
+      .card h4 {
+        margin-bottom: 10px;
+      }
+      .authors {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-top: 20px;
+      }
+      .affiliations {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+      }
+      .figure {
+        background: transparent;
+        border-radius: 0;
+        overflow: visible;
+        border: none;
+        box-shadow: none;
+      }
+      .figure img {
+        width: 100%;
+        display: block;
+      }
+      .figure figcaption {
+        padding: 16px 20px 20px;
+        font-size: 0.95rem;
+        color: var(--text-muted);
+      }
+      .teaser {
+        padding-top: 40px;
+        padding-bottom: 40px;
+      }
+      .table-block {
+        margin-top: 28px;
+      }
+      .table-caption {
+        margin-bottom: 14px;
+        color: var(--text-muted);
+      }
+      .table-wrap {
+        background: transparent;
+        border: none;
+        border-radius: 0;
+        padding: 18px;
+        box-shadow: none;
+        overflow-x: auto;
+        width: 100%;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        min-width: 720px;
+      }
+      thead {
+        background: #f3f4f6;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 10px 12px;
+        border-bottom: 1px solid var(--border);
+        font-size: 0.92rem;
+        white-space: nowrap;
+      }
+      .section-row td {
+        background: #f9fafb;
+        font-weight: 600;
+      }
+      .bitdance-row td {
+        font-weight: 600;
+      }
+      .inner-tabs {
+        margin-top: 6px;
+      }
+      .inner-tab-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+      }
+      .inner-tab-button {
+        border: 1px solid var(--border);
+        background: #fff;
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+      }
+      .inner-tab-button.active {
+        background: var(--accent);
+        color: #fff;
+        border-color: transparent;
+      }
+      .inner-tab-panel {
+        display: none;
+      }
+      .inner-tab-panel.active {
+        display: block;
+      }
+      .footer {
+        background: linear-gradient(180deg, #0f1115 0%, #0b0d12 100%);
+        color: rgba(248, 249, 252, 0.82);
+        padding: 48px 0;
+        font-size: 0.95rem;
+      }
+      .footer .container {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .footer a {
+        color: rgba(248, 249, 252, 0.92);
+        text-decoration: none;
+        border-bottom: 1px solid rgba(248, 249, 252, 0.25);
+      }
+      .footer a:hover {
+        border-bottom-color: rgba(248, 249, 252, 0.6);
+      }
+      @media (max-width: 880px) {
+        .title-block h1 {
+          font-size: 2.2rem;
+        }
+      }
+      .color-link {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <div class="title-block">
+          <h1>BitDance: Scaling Autoregressive Generative Models with Binary Tokens</h1>
+          <div class="hero-actions">
+            <a class="button primary" href="arxivxxx" target="_blank">Paper</a>
+            <a class="button ghost" href="https://github.com/shallowdream204/BitDance" target="_blank"
+              >Code</a
+            >
+            <a class="button ghost" href="https://huggingface.co/collections/shallowdream204/bitdance" target="_blank">Models</a>
+            <a class="button ghost" href="https://huggingface.co/spaces/shallowdream204/BitDance-14B-64x" target="_blank">Demo</a>
+            <a class="button ghost" href="gallary.html" target="_blank">Gallery</a>
+          </div>
+          <div class="authors">
+            <div>
+              <a href="https://shallowdream204.github.io/" target="_blank" rel="noopener"
+                >Yuang Ai</a
+              ><sup>*1,2,4</sup>,
+              <a href="https://csuhan.com/" target="_blank" rel="noopener">Jiaming Han</a><sup>*1,2</sup>,
+              <a href="https://scholar.google.com/citations?user=PGaDirMAAAAJ" target="_blank" rel="noopener"
+                >Shaobin Zhuang</a
+              ><sup>*1,3</sup>,
+              <a href="https://scholar.google.com/citations?user=S7bGBmkyNtEC" target="_blank" rel="noopener"
+                >Weijia Mao</a
+              ><sup>1,5</sup>,
+              <a href="https://xuefenghu.me/" target="_blank" rel="noopener">Xuefeng Hu</a><sup>1</sup>,<br />
+              <a href="https://ziyanyang.github.io/" target="_blank" rel="noopener">Ziyan Yang</a><sup>1</sup>,
+              <a href="https://zhenheny.github.io/" target="_blank" rel="noopener">Zhenheng Yang</a
+              ><sup>1</sup>,
+              <a href="https://hhb072.github.io/" target="_blank" rel="noopener">Huaibo Huang</a
+              ><sup>4&dagger;</sup>,
+              <a href="https://xyue.io/" target="_blank" rel="noopener">Xiangyu Yue</a
+              ><sup>2&dagger;</sup>,
+              <a href="https://haochen-rye.github.io/" target="_blank" rel="noopener">Hao Chen</a
+              ><sup>*1&dagger;&Dagger;</sup>
+            </div>
+            <div class="affiliations">*Equal contribution · †Corresponding author · ‡Project lead</div>
+            <div class="affiliations">
+              <sup>1</sup>ByteDance, <sup>2</sup>MMLab, The Chinese University of Hong Kong, <sup>3</sup
+              >Shanghai Jiao Tong University<br />
+              <sup>4</sup>Institute of Automation, Chinese Academy of Sciences, <sup>5</sup>National
+              University of Singapore
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section class="section teaser">
+      <div class="container">
+        <figure class="figure">
+          <img src="figs/teaser.jpg" alt="High-resolution BitDance samples" />
+          <figcaption>
+            Click <a href="gallary.html" class="color-link">Image Gallery</a> to view more images.
+          </figcaption>
+        </figure>
+      </div>
+    </section>
+
+    <section id="overview" class="section">
+      <div class="container">
+        <h2>Abstract</h2>
+        <p>
+          For visual generation, discrete autoregressive models often struggle with poor tokenizer reconstruction, difficulties in sampling from large vocabularies, and slow token-by-token generation speeds. We present BitDance, which addresses these challenges via a large-vocabulary binary tokenizer, a binary diffusion head for sampling in large discrete space, and a next-patch diffusion paradigm that enables efficient multitoken prediction. BitDance is an open-source discrete autoregressive foundation model with 14B parameters, trained on large-scale multimodal tokens. While maintaining the standard language modeling paradigm for text tokens, BitDance employs a next-patch diffusion paradigm for visual tokens to predict multiple tokens in parallel—up to 64 per step. This unified multimodal framework is simple, scalable, and capable of efficiently generating high-resolution, photorealistic images.
+        </p>
+      </div>
+    </section>
+
+    <section id="method" class="section light">
+      <div class="container">
+        <h2>Method</h2>
+        <figure class="figure">
+          <img src="figs/arch_yuang.png" alt="Architecture of BitDance" />
+          <!-- <figcaption>
+            Architecture of BitDance: binary tokenization, autoregressive transformer backbone,
+            and diffusion head for joint next-patch prediction. -->
+          </figcaption>
+        </figure>
+        <p>
+          BitDance unifies a binary visual tokenizer, a diffusion-based sampling head, and a
+          next-patch prediction strategy into a single autoregressive pipeline. Images are encoded
+          into compact binary latents, flattened into patch-wise sequences, and decoded with joint
+          multi-token sampling to balance quality and speed at high resolution.
+        </p>
+        <p>
+          The design targets three bottlenecks in autoregressive vision models: limited token
+          expressiveness, sampling instability in large vocabularies, and slow decoding. BitDance
+          addresses these with a 2^256 binary latent space, a diffusion head that models bit
+          correlations directly, and patch-wise parallel prediction that preserves spatial
+          dependencies while accelerating generation.
+        </p>
+        <h4>Binary Visual Tokenizer</h4>
+        <p>
+          BitDance scales token entropy via group-wise lookup-free quantization. By partitioning
+          channels for entropy calculation, the tokenizer can grow to a 2^256 vocabulary while
+          staying memory efficient and preserving reconstruction fidelity comparable to continuous
+          VAEs.
+        </p>
+        <p>
+          Tokens are learned with entropy regularization to prevent codebook collapse, and the
+          grouping strategy keeps training tractable even as the vocabulary grows exponentially.
+          This yields compact sequences with strong reconstruction quality, reducing error
+          accumulation in long autoregressive chains.
+        </p>
+        <h4>Binary Diffusion Head</h4>
+        <p>
+          Instead of predicting a categorical index, BitDance embeds binary tokens on a continuous
+          hypercube and trains a diffusion head with a velocity-matching objective. This models all
+          bits jointly without exponential classifier parameters and enables high-precision sampling
+          in massive discrete spaces.
+        </p>
+        <p>
+          The head predicts clean binary latents from noisy inputs and applies a hard sign projection
+          at the end of sampling. This preserves discrete structure while avoiding the independence
+          assumptions and parameter blowups of conventional classification heads.
+        </p>
+        <h4>Next-Patch Diffusion</h4>
+        <p>
+          For faster decoding, BitDance predicts a patch of tokens in parallel using a block-wise
+          causal mask that preserves dependencies within a patch. A lightweight DiT-style head
+          aligns the training objective with joint multi-token sampling, improving both quality and
+          throughput.
+        </p>
+        <p>
+          Patch-wise raster ordering maintains global autoregressive structure while enabling
+          intra-patch visibility. This closes the training-inference gap seen in parallel AR methods
+          that sample tokens independently at inference time.
+        </p>
+        <h4>Training & Sampling</h4>
+        <p>
+          BitDance trains the diffusion head with velocity matching on noisy binary latents and
+          performs Euler integration at inference time. A final hard binarization step projects
+          outputs back to the hypercube, reinforcing discrete structure while avoiding the parameter
+          blowup of index-based classifiers.
+        </p>
+        <p>
+          For text-to-image, BitDance keeps the transformer aligned with language priors using a
+          lightweight text loss alongside the vision objective. The same pipeline scales from
+          class-conditional ImageNet to high-resolution, prompt-aligned synthesis.
+        </p>
+      </div>
+    </section>
+
+    <section id="results" class="section">
+      <div class="container">
+        <h2>Results</h2>
+        <div class="table-block">
+          <h3>Class-conditional Image Generation</h3>
+          <!-- <p class="table-caption"></p> -->
+          <div class="inner-tabs">
+            <div class="inner-tab-list" role="tablist">
+              <button class="inner-tab-button active" type="button" data-inner="vision-class">
+                ImageNet 256×256 (Class-Conditional)
+              </button>
+              <button class="inner-tab-button" type="button" data-inner="vision-parallel">
+                ImageNet 256×256 (Parallel Image Generation)
+              </button>
+            </div>
+            <div id="vision-class" class="inner-tab-panel active">
+              <div class="table-block">
+                <h3>ImageNet 256×256 (Class-Conditional)</h3>
+                <p class="table-caption">
+                  Evaluation of class-conditional image generation on ImageNet 256×256.
+                </p>
+                <div class="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Model</th>
+                        <th>Type</th>
+                        <th>Order</th>
+                        <th>Tokenizer</th>
+                        <th>#Params</th>
+                        <th>FID ↓</th>
+                        <th>IS ↑</th>
+                        <th>Pre. ↑</th>
+                        <th>Rec. ↑</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                <tr class="section-row">
+                  <td colspan="9">Continuous Tokens</td>
+                </tr>
+                <tr>
+                  <td>DiT-XL/2</td>
+                  <td>Diff.</td>
+                  <td>-</td>
+                  <td>VAE</td>
+                  <td>675M</td>
+                  <td>2.27</td>
+                  <td>278.2</td>
+                  <td>0.83</td>
+                  <td>0.57</td>
+                </tr>
+                <tr>
+                  <td>SiT-XL/2</td>
+                  <td>Diff.</td>
+                  <td>-</td>
+                  <td>VAE</td>
+                  <td>675M</td>
+                  <td>2.06</td>
+                  <td>277.5</td>
+                  <td>0.83</td>
+                  <td>0.59</td>
+                </tr>
+                <tr>
+                  <td>DiCo-XL</td>
+                  <td>Diff.</td>
+                  <td>-</td>
+                  <td>VAE</td>
+                  <td>701M</td>
+                  <td>2.05</td>
+                  <td>282.2</td>
+                  <td>0.83</td>
+                  <td>0.59</td>
+                </tr>
+                <tr>
+                  <td>MDTv2</td>
+                  <td>Mask.+Diff.</td>
+                  <td>-</td>
+                  <td>VAE</td>
+                  <td>675M</td>
+                  <td>1.58</td>
+                  <td>314.7</td>
+                  <td>0.79</td>
+                  <td>0.65</td>
+                </tr>
+                <tr>
+                  <td>REPA</td>
+                  <td>Diff.</td>
+                  <td>-</td>
+                  <td>VAE</td>
+                  <td>675M</td>
+                  <td>1.42</td>
+                  <td>305.7</td>
+                  <td>0.80</td>
+                  <td>0.65</td>
+                </tr>
+                <tr>
+                  <td>RAE</td>
+                  <td>Diff.</td>
+                  <td>-</td>
+                  <td>RAE</td>
+                  <td>675M</td>
+                  <td>1.13</td>
+                  <td>262.6</td>
+                  <td>0.78</td>
+                  <td>0.67</td>
+                </tr>
+                <tr>
+                  <td>MAR-B</td>
+                  <td>Mask.</td>
+                  <td>random</td>
+                  <td>VAE</td>
+                  <td>208M</td>
+                  <td>2.31</td>
+                  <td>281.7</td>
+                  <td>0.82</td>
+                  <td>0.57</td>
+                </tr>
+                <tr>
+                  <td>MAR-L</td>
+                  <td>Mask.</td>
+                  <td>random</td>
+                  <td>VAE</td>
+                  <td>479M</td>
+                  <td>1.78</td>
+                  <td>296.0</td>
+                  <td>0.81</td>
+                  <td>0.60</td>
+                </tr>
+                <tr>
+                  <td>MAR-H</td>
+                  <td>Mask.</td>
+                  <td>random</td>
+                  <td>VAE</td>
+                  <td>943M</td>
+                  <td>1.55</td>
+                  <td>303.7</td>
+                  <td>0.81</td>
+                  <td>0.62</td>
+                </tr>
+                <tr>
+                  <td>SphereAR-B</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>VAE</td>
+                  <td>208M</td>
+                  <td>1.92</td>
+                  <td>277.8</td>
+                  <td>0.81</td>
+                  <td>0.61</td>
+                </tr>
+                <tr>
+                  <td>SphereAR-L</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>VAE</td>
+                  <td>479M</td>
+                  <td>1.54</td>
+                  <td>295.9</td>
+                  <td>0.80</td>
+                  <td>0.63</td>
+                </tr>
+                <tr>
+                  <td>SphereAR-H</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>VAE</td>
+                  <td>943M</td>
+                  <td>1.34</td>
+                  <td>300.0</td>
+                  <td>0.80</td>
+                  <td>0.64</td>
+                </tr>
+                <tr>
+                  <td>xAR-B</td>
+                  <td>AR+Diff.</td>
+                  <td>raster</td>
+                  <td>VAE</td>
+                  <td>172M</td>
+                  <td>1.72</td>
+                  <td>280.4</td>
+                  <td>0.82</td>
+                  <td>0.59</td>
+                </tr>
+                <tr>
+                  <td>xAR-L</td>
+                  <td>AR+Diff.</td>
+                  <td>raster</td>
+                  <td>VAE</td>
+                  <td>608M</td>
+                  <td>1.28</td>
+                  <td>292.5</td>
+                  <td>0.82</td>
+                  <td>0.62</td>
+                </tr>
+                <tr>
+                  <td>xAR-H</td>
+                  <td>AR+Diff.</td>
+                  <td>raster</td>
+                  <td>VAE</td>
+                  <td>1.1B</td>
+                  <td>1.24</td>
+                  <td>301.6</td>
+                  <td>0.83</td>
+                  <td>0.64</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="9">Discrete Tokens</td>
+                </tr>
+                <tr>
+                  <td>LlamaGen-L</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>VQ</td>
+                  <td>343M</td>
+                  <td>3.07</td>
+                  <td>256.1</td>
+                  <td>0.83</td>
+                  <td>0.52</td>
+                </tr>
+                <tr>
+                  <td>LlamaGen-XL</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>VQ</td>
+                  <td>775M</td>
+                  <td>2.62</td>
+                  <td>244.1</td>
+                  <td>0.80</td>
+                  <td>0.57</td>
+                </tr>
+                <tr>
+                  <td>LlamaGen-XXL</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>VQ</td>
+                  <td>1.4B</td>
+                  <td>2.34</td>
+                  <td>253.9</td>
+                  <td>0.80</td>
+                  <td>0.59</td>
+                </tr>
+                <tr>
+                  <td>RandAR-L</td>
+                  <td>AR</td>
+                  <td>random</td>
+                  <td>VQ</td>
+                  <td>343M</td>
+                  <td>2.55</td>
+                  <td>288.8</td>
+                  <td>0.81</td>
+                  <td>0.58</td>
+                </tr>
+                <tr>
+                  <td>RandAR-XL</td>
+                  <td>AR</td>
+                  <td>random</td>
+                  <td>VQ</td>
+                  <td>775M</td>
+                  <td>2.22</td>
+                  <td>314.2</td>
+                  <td>0.80</td>
+                  <td>0.60</td>
+                </tr>
+                <tr>
+                  <td>RandAR-XXL</td>
+                  <td>AR</td>
+                  <td>random</td>
+                  <td>VQ</td>
+                  <td>1.4B</td>
+                  <td>2.15</td>
+                  <td>322.0</td>
+                  <td>0.79</td>
+                  <td>0.62</td>
+                </tr>
+                <tr>
+                  <td>RAR-L</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>VQ</td>
+                  <td>461M</td>
+                  <td>1.70</td>
+                  <td>299.5</td>
+                  <td>0.81</td>
+                  <td>0.60</td>
+                </tr>
+                <tr>
+                  <td>RAR-XL</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>VQ</td>
+                  <td>955M</td>
+                  <td>1.50</td>
+                  <td>306.9</td>
+                  <td>0.80</td>
+                  <td>0.62</td>
+                </tr>
+                <tr>
+                  <td>RAR-XXL</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>VQ</td>
+                  <td>1.5B</td>
+                  <td>1.48</td>
+                  <td>326.0</td>
+                  <td>0.80</td>
+                  <td>0.63</td>
+                </tr>
+                <tr>
+                  <td>OpenMAGVIT2-XL</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>LFQ</td>
+                  <td>804M</td>
+                  <td>2.51</td>
+                  <td>271.7</td>
+                  <td>0.84</td>
+                  <td>0.54</td>
+                </tr>
+                <tr>
+                  <td>MAGVIT-v2</td>
+                  <td>Mask.</td>
+                  <td>random</td>
+                  <td>LFQ</td>
+                  <td>307M</td>
+                  <td>1.78</td>
+                  <td>319.4</td>
+                  <td>-</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td>VAR-d20</td>
+                  <td>VAR</td>
+                  <td>-</td>
+                  <td>VQ</td>
+                  <td>600M</td>
+                  <td>2.57</td>
+                  <td>302.6</td>
+                  <td>0.83</td>
+                  <td>0.56</td>
+                </tr>
+                <tr>
+                  <td>VAR-d30</td>
+                  <td>VAR</td>
+                  <td>-</td>
+                  <td>VQ</td>
+                  <td>2B</td>
+                  <td>1.92</td>
+                  <td>323.1</td>
+                  <td>0.82</td>
+                  <td>0.59</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance-B-1x</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>LFQ</td>
+                  <td>242M</td>
+                  <td>1.68</td>
+                  <td>297.1</td>
+                  <td>0.80</td>
+                  <td>0.62</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance-L-1x</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>LFQ</td>
+                  <td>527M</td>
+                  <td>1.31</td>
+                  <td>300.2</td>
+                  <td>0.80</td>
+                  <td>0.64</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance-H-1x</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>LFQ</td>
+                  <td>1.0B</td>
+                  <td>1.24</td>
+                  <td>304.4</td>
+                  <td>0.81</td>
+                  <td>0.64</td>
+                </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+              <div id="vision-parallel" class="inner-tab-panel">
+                <div class="table-block">
+                  <h3>ImageNet 256×256 (Parallel Image Generation)</h3>
+                  <p class="table-caption">
+                    Overall comparison with parallel image generation methods on ImageNet 256×256.
+                  </p>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Type</th>
+                          <th>Order</th>
+                          <th>#Params</th>
+                          <th>Steps</th>
+                          <th>Throughput ↑</th>
+                          <th>FID ↓</th>
+                          <th>IS ↑</th>
+                          <th>Pre. ↑</th>
+                          <th>Rec. ↑</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                <tr>
+                  <td>DiT-XL/2</td>
+                  <td>Diff.</td>
+                  <td>-</td>
+                  <td>675M</td>
+                  <td>250</td>
+                  <td>1.06 img/s</td>
+                  <td>2.27</td>
+                  <td>278.2</td>
+                  <td>0.83</td>
+                  <td>0.57</td>
+                </tr>
+                <tr>
+                  <td>DiCo-XL</td>
+                  <td>Diff.</td>
+                  <td>-</td>
+                  <td>701M</td>
+                  <td>250</td>
+                  <td>2.62 img/s</td>
+                  <td>2.05</td>
+                  <td>282.2</td>
+                  <td>0.83</td>
+                  <td>0.59</td>
+                </tr>
+                <tr>
+                  <td>MaskGIT</td>
+                  <td>Mask.</td>
+                  <td>random</td>
+                  <td>227M</td>
+                  <td>8</td>
+                  <td>50.73 img/s</td>
+                  <td>6.18</td>
+                  <td>182.1</td>
+                  <td>0.80</td>
+                  <td>0.51</td>
+                </tr>
+                <tr>
+                  <td>MAR-B</td>
+                  <td>Mask.</td>
+                  <td>random</td>
+                  <td>208M</td>
+                  <td>256</td>
+                  <td>1.83 img/s</td>
+                  <td>2.31</td>
+                  <td>281.7</td>
+                  <td>0.82</td>
+                  <td>0.57</td>
+                </tr>
+                <tr>
+                  <td>MAR-L</td>
+                  <td>Mask.</td>
+                  <td>random</td>
+                  <td>479M</td>
+                  <td>256</td>
+                  <td>1.39 img/s</td>
+                  <td>1.78</td>
+                  <td>296.0</td>
+                  <td>0.81</td>
+                  <td>0.60</td>
+                </tr>
+                <tr>
+                  <td>VAR-d20</td>
+                  <td>VAR</td>
+                  <td>-</td>
+                  <td>600M</td>
+                  <td>10</td>
+                  <td>71.31 img/s</td>
+                  <td>2.57</td>
+                  <td>302.6</td>
+                  <td>0.83</td>
+                  <td>0.56</td>
+                </tr>
+                <tr>
+                  <td>VAR-d24</td>
+                  <td>VAR</td>
+                  <td>-</td>
+                  <td>1.0B</td>
+                  <td>10</td>
+                  <td>47.22 img/s</td>
+                  <td>2.09</td>
+                  <td>312.9</td>
+                  <td>0.82</td>
+                  <td>0.59</td>
+                </tr>
+                <tr>
+                  <td>PAR-L</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>343M</td>
+                  <td>147</td>
+                  <td>15.01 img/s</td>
+                  <td>3.76</td>
+                  <td>218.9</td>
+                  <td>0.81</td>
+                  <td>0.60</td>
+                </tr>
+                <tr>
+                  <td>PAR-XL</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>775M</td>
+                  <td>147</td>
+                  <td>8.09 img/s</td>
+                  <td>2.61</td>
+                  <td>259.2</td>
+                  <td>0.80</td>
+                  <td>0.62</td>
+                </tr>
+                <tr>
+                  <td>PAR-XXL</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>1.4B</td>
+                  <td>147</td>
+                  <td>5.17 img/s</td>
+                  <td>2.35</td>
+                  <td>263.2</td>
+                  <td>0.80</td>
+                  <td>0.62</td>
+                </tr>
+                <tr>
+                  <td>NAR-L</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>372M</td>
+                  <td>31</td>
+                  <td>40.03 img/s</td>
+                  <td>3.06</td>
+                  <td>263.9</td>
+                  <td>0.81</td>
+                  <td>0.53</td>
+                </tr>
+                <tr>
+                  <td>NAR-XL</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>816M</td>
+                  <td>31</td>
+                  <td>23.12 img/s</td>
+                  <td>2.70</td>
+                  <td>277.5</td>
+                  <td>0.81</td>
+                  <td>0.58</td>
+                </tr>
+                <tr>
+                  <td>NAR-XXL</td>
+                  <td>AR</td>
+                  <td>hybrid</td>
+                  <td>1.5B</td>
+                  <td>31</td>
+                  <td>15.37 img/s</td>
+                  <td>2.58</td>
+                  <td>293.5</td>
+                  <td>0.82</td>
+                  <td>0.57</td>
+                </tr>
+                <tr>
+                  <td>RandAR-L</td>
+                  <td>AR</td>
+                  <td>random</td>
+                  <td>343M</td>
+                  <td>88</td>
+                  <td>25.12 img/s</td>
+                  <td>2.55</td>
+                  <td>288.8</td>
+                  <td>0.81</td>
+                  <td>0.58</td>
+                </tr>
+                <tr>
+                  <td>RandAR-XL</td>
+                  <td>AR</td>
+                  <td>random</td>
+                  <td>775M</td>
+                  <td>88</td>
+                  <td>16.01 img/s</td>
+                  <td>2.25</td>
+                  <td>317.8</td>
+                  <td>0.80</td>
+                  <td>0.60</td>
+                </tr>
+                <tr>
+                  <td>RandAR-XXL</td>
+                  <td>AR</td>
+                  <td>random</td>
+                  <td>1.4B</td>
+                  <td>88</td>
+                  <td>10.39 img/s</td>
+                  <td>2.15</td>
+                  <td>322.0</td>
+                  <td>0.79</td>
+                  <td>0.62</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance-B-4x</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>260M</td>
+                  <td>64</td>
+                  <td>24.18 img/s</td>
+                  <td>1.69</td>
+                  <td>291.2</td>
+                  <td>0.79</td>
+                  <td>0.63</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance-B-16x</td>
+                  <td>AR</td>
+                  <td>raster</td>
+                  <td>260M</td>
+                  <td>16</td>
+                  <td>90.26 img/s</td>
+                  <td>1.91</td>
+                  <td>283.8</td>
+                  <td>0.78</td>
+                  <td>0.62</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+            </div>
+          </div>
+        </div>
+        <div class="table-block">
+          <h3>Text-to-Image Generation</h3>
+          <div class="inner-tabs">
+            <div class="inner-tab-list" role="tablist">
+              <button class="inner-tab-button active" type="button" data-inner="t2i-dpg">
+                DPG-Bench
+              </button>
+              <button class="inner-tab-button" type="button" data-inner="t2i-geneval">
+                GenEval
+              </button>
+              <button class="inner-tab-button" type="button" data-inner="t2i-oneig-en">
+                OneIG-EN
+              </button>
+              <button class="inner-tab-button" type="button" data-inner="t2i-oneig-zh">
+                OneIG-ZH
+              </button>
+              <button class="inner-tab-button" type="button" data-inner="t2i-tiif">
+                TIIF Bench
+              </button>
+            </div>
+              <div id="t2i-dpg" class="inner-tab-panel active">
+                <div class="table-block">
+                  <h3>DPG-Bench</h3>
+                  <p class="table-caption">
+                    Evaluation of text-to-image generation on DPG-Bench.
+                  </p>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Global</th>
+                          <th>Entity</th>
+                          <th>Attribute</th>
+                          <th>Relation</th>
+                          <th>Other</th>
+                          <th>Overall ↑</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                <tr class="section-row">
+                  <td colspan="7">Proprietary Models</td>
+                </tr>
+                <tr>
+                  <td>GPT Image 1</td>
+                  <td>88.89</td>
+                  <td>88.94</td>
+                  <td>89.84</td>
+                  <td>92.63</td>
+                  <td>90.96</td>
+                  <td>85.15</td>
+                </tr>
+                <tr>
+                  <td>Seedream 3.0</td>
+                  <td>94.31</td>
+                  <td>92.65</td>
+                  <td>91.36</td>
+                  <td>92.78</td>
+                  <td>88.24</td>
+                  <td>88.27</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="7">Diffusion Models</td>
+                </tr>
+                <tr>
+                  <td>PixArt-α</td>
+                  <td>86.89</td>
+                  <td>82.89</td>
+                  <td>88.94</td>
+                  <td>86.59</td>
+                  <td>87.68</td>
+                  <td>80.54</td>
+                </tr>
+                <tr>
+                  <td>FLUX.1-Dev</td>
+                  <td>74.35</td>
+                  <td>90.00</td>
+                  <td>88.96</td>
+                  <td>90.87</td>
+                  <td>88.33</td>
+                  <td>83.84</td>
+                </tr>
+                <tr>
+                  <td>SD3 Medium</td>
+                  <td>87.90</td>
+                  <td>91.01</td>
+                  <td>88.83</td>
+                  <td>80.70</td>
+                  <td>88.68</td>
+                  <td>84.08</td>
+                </tr>
+                <tr>
+                  <td>Z-Image-Turbo</td>
+                  <td>91.29</td>
+                  <td>89.59</td>
+                  <td>90.14</td>
+                  <td>92.16</td>
+                  <td>88.68</td>
+                  <td>84.86</td>
+                </tr>
+                <tr>
+                  <td>BAGEL</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>85.07</td>
+                </tr>
+                <tr>
+                  <td>HiDream-I1-Full</td>
+                  <td>76.44</td>
+                  <td>90.22</td>
+                  <td>89.48</td>
+                  <td>93.74</td>
+                  <td>91.83</td>
+                  <td>85.89</td>
+                </tr>
+                <tr>
+                  <td>Lumina-Image-2.0</td>
+                  <td>-</td>
+                  <td>91.97</td>
+                  <td>90.20</td>
+                  <td>94.85</td>
+                  <td>-</td>
+                  <td>87.20</td>
+                </tr>
+                <tr>
+                  <td>Z-Image</td>
+                  <td>93.39</td>
+                  <td>91.22</td>
+                  <td>93.16</td>
+                  <td>92.22</td>
+                  <td>91.52</td>
+                  <td>88.14</td>
+                </tr>
+                <tr>
+                  <td>Qwen-Image</td>
+                  <td>91.32</td>
+                  <td>91.56</td>
+                  <td>92.02</td>
+                  <td>94.31</td>
+                  <td>92.73</td>
+                  <td>88.32</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="7">Autoregressive Models</td>
+                </tr>
+                <tr>
+                  <td>Emu3-Gen</td>
+                  <td>85.21</td>
+                  <td>86.68</td>
+                  <td>86.84</td>
+                  <td>90.22</td>
+                  <td>83.15</td>
+                  <td>80.60</td>
+                </tr>
+                <tr>
+                  <td>Infinity</td>
+                  <td>93.11</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>90.76</td>
+                  <td>-</td>
+                  <td>83.46</td>
+                </tr>
+                <tr>
+                  <td>Janus-Pro</td>
+                  <td>86.90</td>
+                  <td>88.90</td>
+                  <td>89.40</td>
+                  <td>89.32</td>
+                  <td>89.48</td>
+                  <td>84.19</td>
+                </tr>
+                <tr>
+                  <td>Tar</td>
+                  <td>83.98</td>
+                  <td>88.62</td>
+                  <td>88.05</td>
+                  <td>93.98</td>
+                  <td>84.86</td>
+                  <td>84.19</td>
+                </tr>
+                <tr>
+                  <td>NextStep-1</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>85.28</td>
+                </tr>
+                <tr>
+                  <td>GLM-Image</td>
+                  <td>87.74</td>
+                  <td>90.25</td>
+                  <td>89.08</td>
+                  <td>92.15</td>
+                  <td>90.17</td>
+                  <td>84.78</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance</td>
+                  <td>89.53</td>
+                  <td>93.76</td>
+                  <td>92.47</td>
+                  <td>91.81</td>
+                  <td>90.26</td>
+                  <td>88.28</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+              </div>
+              <div id="t2i-geneval" class="inner-tab-panel">
+                <div class="table-block">
+                  <h3>GenEval</h3>
+                  <p class="table-caption">
+                    Evaluation of text-to-image generation on GenEval.
+                  </p>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Single Obj.</th>
+                          <th>Two Obj.</th>
+                          <th>Count</th>
+                          <th>Colors</th>
+                          <th>Pos.</th>
+                          <th>Color Attri.</th>
+                          <th>Overall ↑</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                <tr class="section-row">
+                  <td colspan="8">Proprietary Models</td>
+                </tr>
+                <tr>
+                  <td>GPT Image 1</td>
+                  <td>0.99</td>
+                  <td>0.92</td>
+                  <td>0.85</td>
+                  <td>0.92</td>
+                  <td>0.75</td>
+                  <td>0.61</td>
+                  <td>0.84</td>
+                </tr>
+                <tr>
+                  <td>Seedream 3.0</td>
+                  <td>0.99</td>
+                  <td>0.96</td>
+                  <td>0.91</td>
+                  <td>0.93</td>
+                  <td>0.47</td>
+                  <td>0.80</td>
+                  <td>0.84</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="8">Diffusion Models</td>
+                </tr>
+                <tr>
+                  <td>PixArt-α</td>
+                  <td>0.98</td>
+                  <td>0.50</td>
+                  <td>0.44</td>
+                  <td>0.80</td>
+                  <td>0.08</td>
+                  <td>0.07</td>
+                  <td>0.48</td>
+                </tr>
+                <tr>
+                  <td>SD3 Medium</td>
+                  <td>0.98</td>
+                  <td>0.74</td>
+                  <td>0.63</td>
+                  <td>0.67</td>
+                  <td>0.34</td>
+                  <td>0.36</td>
+                  <td>0.62</td>
+                </tr>
+                <tr>
+                  <td>JanusFlow</td>
+                  <td>0.97</td>
+                  <td>0.59</td>
+                  <td>0.45</td>
+                  <td>0.83</td>
+                  <td>0.53</td>
+                  <td>0.42</td>
+                  <td>0.63</td>
+                </tr>
+                <tr>
+                  <td>FLUX.1-Dev</td>
+                  <td>0.98</td>
+                  <td>0.81</td>
+                  <td>0.74</td>
+                  <td>0.79</td>
+                  <td>0.22</td>
+                  <td>0.45</td>
+                  <td>0.66</td>
+                </tr>
+                <tr>
+                  <td>SD3.5-Large</td>
+                  <td>0.98</td>
+                  <td>0.89</td>
+                  <td>0.73</td>
+                  <td>0.83</td>
+                  <td>0.34</td>
+                  <td>0.47</td>
+                  <td>0.71</td>
+                </tr>
+                <tr>
+                  <td>Lumina-Image-2.0</td>
+                  <td>-</td>
+                  <td>0.87</td>
+                  <td>0.67</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>0.62</td>
+                  <td>0.73</td>
+                </tr>
+                <tr>
+                  <td>Show-o2</td>
+                  <td>1.00</td>
+                  <td>0.87</td>
+                  <td>0.58</td>
+                  <td>0.92</td>
+                  <td>0.52</td>
+                  <td>0.62</td>
+                  <td>0.76</td>
+                </tr>
+                <tr>
+                  <td>Z-Image-Turbo</td>
+                  <td>1.00</td>
+                  <td>0.95</td>
+                  <td>0.77</td>
+                  <td>0.89</td>
+                  <td>0.65</td>
+                  <td>0.68</td>
+                  <td>0.82</td>
+                </tr>
+                <tr>
+                  <td>HiDream-I1-Full</td>
+                  <td>1.00</td>
+                  <td>0.98</td>
+                  <td>0.79</td>
+                  <td>0.91</td>
+                  <td>0.60</td>
+                  <td>0.72</td>
+                  <td>0.83</td>
+                </tr>
+                <tr>
+                  <td>Z-Image</td>
+                  <td>1.00</td>
+                  <td>0.94</td>
+                  <td>0.78</td>
+                  <td>0.93</td>
+                  <td>0.62</td>
+                  <td>0.77</td>
+                  <td>0.84</td>
+                </tr>
+                <tr>
+                  <td>Qwen-Image</td>
+                  <td>0.99</td>
+                  <td>0.92</td>
+                  <td>0.89</td>
+                  <td>0.88</td>
+                  <td>0.76</td>
+                  <td>0.77</td>
+                  <td>0.87</td>
+                </tr>
+                <tr>
+                  <td>BAGEL</td>
+                  <td>0.98</td>
+                  <td>0.95</td>
+                  <td>0.84</td>
+                  <td>0.95</td>
+                  <td>0.78</td>
+                  <td>0.77</td>
+                  <td>0.88</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="8">Autoregressive Models</td>
+                </tr>
+                <tr>
+                  <td>Emu3-Gen</td>
+                  <td>0.98</td>
+                  <td>0.71</td>
+                  <td>0.34</td>
+                  <td>0.81</td>
+                  <td>0.17</td>
+                  <td>0.21</td>
+                  <td>0.54</td>
+                </tr>
+                <tr>
+                  <td>Infinity</td>
+                  <td>-</td>
+                  <td>0.85</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>0.49</td>
+                  <td>0.57</td>
+                  <td>0.73</td>
+                </tr>
+                <tr>
+                  <td>Janus-Pro</td>
+                  <td>0.99</td>
+                  <td>0.89</td>
+                  <td>0.59</td>
+                  <td>0.90</td>
+                  <td>0.79</td>
+                  <td>0.66</td>
+                  <td>0.80</td>
+                </tr>
+                <tr>
+                  <td>Tar</td>
+                  <td>0.98</td>
+                  <td>0.92</td>
+                  <td>0.83</td>
+                  <td>0.85</td>
+                  <td>0.80</td>
+                  <td>0.65</td>
+                  <td>0.84</td>
+                </tr>
+                <tr>
+                  <td>NextStep-1</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>0.73</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance</td>
+                  <td>1.00</td>
+                  <td>0.96</td>
+                  <td>0.71</td>
+                  <td>0.95</td>
+                  <td>0.72</td>
+                  <td>0.83</td>
+                  <td>0.86</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+              </div>
+              <div id="t2i-oneig-en" class="inner-tab-panel">
+                <div class="table-block">
+                  <h3>OneIG-EN</h3>
+                  <p class="table-caption">
+                    Evaluation of text-to-image generation on OneIG-EN.
+                  </p>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Alignment</th>
+                          <th>Text</th>
+                          <th>Reasoning</th>
+                          <th>Style</th>
+                          <th>Diversity</th>
+                          <th>Overall ↑</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                <tr class="section-row">
+                  <td colspan="7">Proprietary Models</td>
+                </tr>
+                <tr>
+                  <td>Imagen 4</td>
+                  <td>0.857</td>
+                  <td>0.805</td>
+                  <td>0.338</td>
+                  <td>0.377</td>
+                  <td>0.199</td>
+                  <td>0.515</td>
+                </tr>
+                <tr>
+                  <td>Seedream 3.0</td>
+                  <td>0.818</td>
+                  <td>0.865</td>
+                  <td>0.275</td>
+                  <td>0.413</td>
+                  <td>0.277</td>
+                  <td>0.530</td>
+                </tr>
+                <tr>
+                  <td>GPT Image 1</td>
+                  <td>0.851</td>
+                  <td>0.857</td>
+                  <td>0.345</td>
+                  <td>0.462</td>
+                  <td>0.151</td>
+                  <td>0.533</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="7">Diffusion Models</td>
+                </tr>
+                <tr>
+                  <td>Show-o2</td>
+                  <td>0.817</td>
+                  <td>0.002</td>
+                  <td>0.226</td>
+                  <td>0.317</td>
+                  <td>0.177</td>
+                  <td>0.308</td>
+                </tr>
+                <tr>
+                  <td>SANA-1.5</td>
+                  <td>0.765</td>
+                  <td>0.069</td>
+                  <td>0.217</td>
+                  <td>0.401</td>
+                  <td>0.216</td>
+                  <td>0.334</td>
+                </tr>
+                <tr>
+                  <td>BAGEL</td>
+                  <td>0.769</td>
+                  <td>0.244</td>
+                  <td>0.173</td>
+                  <td>0.367</td>
+                  <td>0.251</td>
+                  <td>0.361</td>
+                </tr>
+                <tr>
+                  <td>FLUX.1-Dev</td>
+                  <td>0.786</td>
+                  <td>0.523</td>
+                  <td>0.253</td>
+                  <td>0.368</td>
+                  <td>0.238</td>
+                  <td>0.434</td>
+                </tr>
+                <tr>
+                  <td>OmniGen2</td>
+                  <td>0.804</td>
+                  <td>0.680</td>
+                  <td>0.271</td>
+                  <td>0.377</td>
+                  <td>0.242</td>
+                  <td>0.475</td>
+                </tr>
+                <tr>
+                  <td>HiDream-I1-Full</td>
+                  <td>0.829</td>
+                  <td>0.707</td>
+                  <td>0.317</td>
+                  <td>0.347</td>
+                  <td>0.186</td>
+                  <td>0.477</td>
+                </tr>
+                <tr>
+                  <td>Z-Image-Turbo</td>
+                  <td>0.840</td>
+                  <td>0.994</td>
+                  <td>0.298</td>
+                  <td>0.368</td>
+                  <td>0.139</td>
+                  <td>0.528</td>
+                </tr>
+                <tr>
+                  <td>Qwen-Image</td>
+                  <td>0.882</td>
+                  <td>0.891</td>
+                  <td>0.306</td>
+                  <td>0.418</td>
+                  <td>0.197</td>
+                  <td>0.539</td>
+                </tr>
+                <tr>
+                  <td>Z-Image</td>
+                  <td>0.881</td>
+                  <td>0.987</td>
+                  <td>0.280</td>
+                  <td>0.387</td>
+                  <td>0.194</td>
+                  <td>0.546</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="7">Autoregressive Models</td>
+                </tr>
+                <tr>
+                  <td>Janus-Pro</td>
+                  <td>0.553</td>
+                  <td>0.001</td>
+                  <td>0.139</td>
+                  <td>0.276</td>
+                  <td>0.365</td>
+                  <td>0.267</td>
+                </tr>
+                <tr>
+                  <td>NextStep-1</td>
+                  <td>0.826</td>
+                  <td>0.507</td>
+                  <td>0.224</td>
+                  <td>0.332</td>
+                  <td>0.199</td>
+                  <td>0.418</td>
+                </tr>
+                <tr>
+                  <td>GLM-Image</td>
+                  <td>0.805</td>
+                  <td>0.969</td>
+                  <td>0.298</td>
+                  <td>0.353</td>
+                  <td>0.213</td>
+                  <td>0.528</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance</td>
+                  <td>0.853</td>
+                  <td>0.937</td>
+                  <td>0.297</td>
+                  <td>0.395</td>
+                  <td>0.177</td>
+                  <td>0.532</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        </div>
+              <div id="t2i-oneig-zh" class="inner-tab-panel">
+                <div class="table-block">
+                  <h3>OneIG-ZH</h3>
+                  <p class="table-caption">
+                    Evaluation of text-to-image generation on OneIG-ZH.
+                  </p>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Alignment</th>
+                          <th>Text</th>
+                          <th>Reasoning</th>
+                          <th>Style</th>
+                          <th>Diversity</th>
+                          <th>Overall ↑</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                <tr class="section-row">
+                  <td colspan="7">Proprietary Models</td>
+                </tr>
+                <tr>
+                  <td>Kolors 2.0</td>
+                  <td>0.738</td>
+                  <td>0.502</td>
+                  <td>0.226</td>
+                  <td>0.331</td>
+                  <td>0.333</td>
+                  <td>0.426</td>
+                </tr>
+                <tr>
+                  <td>GPT Image 1</td>
+                  <td>0.812</td>
+                  <td>0.650</td>
+                  <td>0.300</td>
+                  <td>0.449</td>
+                  <td>0.159</td>
+                  <td>0.474</td>
+                </tr>
+                <tr>
+                  <td>Seedream 3.0</td>
+                  <td>0.793</td>
+                  <td>0.928</td>
+                  <td>0.281</td>
+                  <td>0.397</td>
+                  <td>0.243</td>
+                  <td>0.528</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="7">Diffusion Models</td>
+                </tr>
+                <tr>
+                  <td>HiDream-I1-Full</td>
+                  <td>0.620</td>
+                  <td>0.205</td>
+                  <td>0.256</td>
+                  <td>0.304</td>
+                  <td>0.300</td>
+                  <td>0.337</td>
+                </tr>
+                <tr>
+                  <td>CogView4</td>
+                  <td>0.700</td>
+                  <td>0.193</td>
+                  <td>0.236</td>
+                  <td>0.348</td>
+                  <td>0.214</td>
+                  <td>0.338</td>
+                </tr>
+                <tr>
+                  <td>BAGEL</td>
+                  <td>0.672</td>
+                  <td>0.365</td>
+                  <td>0.186</td>
+                  <td>0.357</td>
+                  <td>0.268</td>
+                  <td>0.370</td>
+                </tr>
+                <tr>
+                  <td>Z-Image-Turbo</td>
+                  <td>0.782</td>
+                  <td>0.982</td>
+                  <td>0.276</td>
+                  <td>0.361</td>
+                  <td>0.134</td>
+                  <td>0.507</td>
+                </tr>
+                <tr>
+                  <td>Qwen-Image</td>
+                  <td>0.825</td>
+                  <td>0.963</td>
+                  <td>0.267</td>
+                  <td>0.405</td>
+                  <td>0.279</td>
+                  <td>0.548</td>
+                </tr>
+                <tr>
+                  <td>Z-Image</td>
+                  <td>0.793</td>
+                  <td>0.988</td>
+                  <td>0.266</td>
+                  <td>0.386</td>
+                  <td>0.243</td>
+                  <td>0.535</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="7">Autoregressive Models</td>
+                </tr>
+                <tr>
+                  <td>Janus-Pro</td>
+                  <td>0.324</td>
+                  <td>0.148</td>
+                  <td>0.104</td>
+                  <td>0.264</td>
+                  <td>0.358</td>
+                  <td>0.240</td>
+                </tr>
+                <tr>
+                  <td>GLM-Image</td>
+                  <td>0.738</td>
+                  <td>0.976</td>
+                  <td>0.284</td>
+                  <td>0.335</td>
+                  <td>0.221</td>
+                  <td>0.511</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance</td>
+                  <td>0.786</td>
+                  <td>0.961</td>
+                  <td>0.276</td>
+                  <td>0.376</td>
+                  <td>0.159</td>
+                  <td>0.512</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+              </div>
+              <div id="t2i-tiif" class="inner-tab-panel">
+                <div class="table-block">
+                  <h3>TIIF Bench (testmini)</h3>
+                  <p class="table-caption">
+                    Evaluation of text-to-image generation on TIIF Bench testmini.
+                  </p>
+                  <div class="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>Model</th>
+                          <th>Overall (Short)</th>
+                          <th>Overall (Long)</th>
+                          <th>Basic Avg (Short)</th>
+                          <th>Basic Avg (Long)</th>
+                          <th>Attr. (Short)</th>
+                          <th>Attr. (Long)</th>
+                          <th>Relation (Short)</th>
+                          <th>Relation (Long)</th>
+                          <th>Reasoning (Short)</th>
+                          <th>Reasoning (Long)</th>
+                          <th>Advanced Avg (Short)</th>
+                          <th>Advanced Avg (Long)</th>
+                          <th>Attr+Rela (Short)</th>
+                          <th>Attr+Rela (Long)</th>
+                          <th>Attr+Reas (Short)</th>
+                          <th>Attr+Reas (Long)</th>
+                          <th>Rela+Reas (Short)</th>
+                          <th>Rela+Reas (Long)</th>
+                          <th>Style (Short)</th>
+                          <th>Style (Long)</th>
+                          <th>Text (Short)</th>
+                          <th>Text (Long)</th>
+                          <th>Real World (Short)</th>
+                          <th>Real World (Long)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                <tr class="section-row">
+                  <td colspan="25">Proprietary Models</td>
+                </tr>
+                <tr>
+                  <td>Midjourney V7</td>
+                  <td>68.74</td>
+                  <td>65.69</td>
+                  <td>77.41</td>
+                  <td>76.00</td>
+                  <td>77.58</td>
+                  <td>81.83</td>
+                  <td>82.07</td>
+                  <td>76.82</td>
+                  <td>72.57</td>
+                  <td>69.32</td>
+                  <td>64.66</td>
+                  <td>60.53</td>
+                  <td>67.20</td>
+                  <td>62.70</td>
+                  <td>81.22</td>
+                  <td>71.59</td>
+                  <td>60.72</td>
+                  <td>64.59</td>
+                  <td>83.33</td>
+                  <td>80.00</td>
+                  <td>24.83</td>
+                  <td>20.83</td>
+                  <td>68.83</td>
+                  <td>63.61</td>
+                </tr>
+                <tr>
+                  <td>DALL-E 3</td>
+                  <td>74.96</td>
+                  <td>70.81</td>
+                  <td>78.72</td>
+                  <td>78.50</td>
+                  <td>79.50</td>
+                  <td>79.83</td>
+                  <td>80.82</td>
+                  <td>78.82</td>
+                  <td>75.82</td>
+                  <td>76.82</td>
+                  <td>73.39</td>
+                  <td>67.27</td>
+                  <td>73.45</td>
+                  <td>67.20</td>
+                  <td>72.01</td>
+                  <td>71.34</td>
+                  <td>63.59</td>
+                  <td>60.72</td>
+                  <td>89.66</td>
+                  <td>86.67</td>
+                  <td>66.83</td>
+                  <td>54.83</td>
+                  <td>72.93</td>
+                  <td>60.99</td>
+                </tr>
+                <tr>
+                  <td>Seedream 3.0</td>
+                  <td>86.02</td>
+                  <td>84.31</td>
+                  <td>87.07</td>
+                  <td>84.93</td>
+                  <td>90.50</td>
+                  <td>90.00</td>
+                  <td>89.85</td>
+                  <td>85.94</td>
+                  <td>80.86</td>
+                  <td>78.86</td>
+                  <td>79.16</td>
+                  <td>80.60</td>
+                  <td>79.76</td>
+                  <td>81.82</td>
+                  <td>77.23</td>
+                  <td>78.85</td>
+                  <td>75.64</td>
+                  <td>78.64</td>
+                  <td>100.00</td>
+                  <td>93.33</td>
+                  <td>97.17</td>
+                  <td>87.78</td>
+                  <td>83.21</td>
+                  <td>83.58</td>
+                </tr>
+                <tr>
+                  <td>GPT Image 1</td>
+                  <td>89.15</td>
+                  <td>88.29</td>
+                  <td>90.75</td>
+                  <td>89.66</td>
+                  <td>91.33</td>
+                  <td>87.08</td>
+                  <td>84.57</td>
+                  <td>84.57</td>
+                  <td>96.32</td>
+                  <td>97.32</td>
+                  <td>88.55</td>
+                  <td>88.35</td>
+                  <td>87.07</td>
+                  <td>89.44</td>
+                  <td>87.22</td>
+                  <td>83.96</td>
+                  <td>85.59</td>
+                  <td>83.21</td>
+                  <td>90.00</td>
+                  <td>93.33</td>
+                  <td>89.83</td>
+                  <td>86.83</td>
+                  <td>89.73</td>
+                  <td>93.46</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="25">Diffusion Models</td>
+                </tr>
+                <tr>
+                  <td>Lumina-Next</td>
+                  <td>50.93</td>
+                  <td>52.46</td>
+                  <td>64.58</td>
+                  <td>66.08</td>
+                  <td>56.83</td>
+                  <td>59.33</td>
+                  <td>67.57</td>
+                  <td>71.82</td>
+                  <td>69.32</td>
+                  <td>67.07</td>
+                  <td>44.75</td>
+                  <td>45.63</td>
+                  <td>51.44</td>
+                  <td>43.20</td>
+                  <td>51.09</td>
+                  <td>59.72</td>
+                  <td>44.72</td>
+                  <td>54.46</td>
+                  <td>70.00</td>
+                  <td>66.67</td>
+                  <td>0.00</td>
+                  <td>0.83</td>
+                  <td>47.56</td>
+                  <td>49.05</td>
+                </tr>
+                <tr>
+                  <td>Hunyuan-DiT</td>
+                  <td>51.38</td>
+                  <td>53.28</td>
+                  <td>69.33</td>
+                  <td>69.00</td>
+                  <td>65.83</td>
+                  <td>69.83</td>
+                  <td>78.07</td>
+                  <td>73.82</td>
+                  <td>64.07</td>
+                  <td>63.32</td>
+                  <td>42.62</td>
+                  <td>45.45</td>
+                  <td>50.20</td>
+                  <td>41.57</td>
+                  <td>59.22</td>
+                  <td>61.84</td>
+                  <td>47.84</td>
+                  <td>51.09</td>
+                  <td>56.67</td>
+                  <td>73.33</td>
+                  <td>0.00</td>
+                  <td>0.83</td>
+                  <td>40.10</td>
+                  <td>44.20</td>
+                </tr>
+                <tr>
+                  <td>PixArt-Σ</td>
+                  <td>62.00</td>
+                  <td>58.12</td>
+                  <td>70.66</td>
+                  <td>75.25</td>
+                  <td>69.33</td>
+                  <td>78.83</td>
+                  <td>75.07</td>
+                  <td>77.32</td>
+                  <td>67.57</td>
+                  <td>69.57</td>
+                  <td>57.65</td>
+                  <td>49.50</td>
+                  <td>65.20</td>
+                  <td>56.57</td>
+                  <td>66.96</td>
+                  <td>61.72</td>
+                  <td>66.59</td>
+                  <td>54.59</td>
+                  <td>83.33</td>
+                  <td>70.00</td>
+                  <td>1.83</td>
+                  <td>1.83</td>
+                  <td>62.11</td>
+                  <td>52.41</td>
+                </tr>
+                <tr>
+                  <td>SANA 1.5</td>
+                  <td>67.15</td>
+                  <td>65.73</td>
+                  <td>79.66</td>
+                  <td>77.08</td>
+                  <td>79.83</td>
+                  <td>77.83</td>
+                  <td>85.57</td>
+                  <td>83.57</td>
+                  <td>73.57</td>
+                  <td>69.82</td>
+                  <td>61.50</td>
+                  <td>60.67</td>
+                  <td>65.32</td>
+                  <td>56.57</td>
+                  <td>69.96</td>
+                  <td>73.09</td>
+                  <td>62.96</td>
+                  <td>65.84</td>
+                  <td>80.00</td>
+                  <td>80.00</td>
+                  <td>17.83</td>
+                  <td>15.83</td>
+                  <td>71.07</td>
+                  <td>68.83</td>
+                </tr>
+                <tr>
+                  <td>SD 3</td>
+                  <td>67.46</td>
+                  <td>66.09</td>
+                  <td>78.32</td>
+                  <td>77.75</td>
+                  <td>83.33</td>
+                  <td>79.83</td>
+                  <td>82.07</td>
+                  <td>78.82</td>
+                  <td>71.07</td>
+                  <td>74.07</td>
+                  <td>61.46</td>
+                  <td>59.56</td>
+                  <td>61.07</td>
+                  <td>64.07</td>
+                  <td>68.84</td>
+                  <td>70.34</td>
+                  <td>50.96</td>
+                  <td>57.84</td>
+                  <td>66.67</td>
+                  <td>76.67</td>
+                  <td>59.83</td>
+                  <td>20.83</td>
+                  <td>63.23</td>
+                  <td>67.34</td>
+                </tr>
+                <tr>
+                  <td>FLUX.1-dev</td>
+                  <td>71.09</td>
+                  <td>71.78</td>
+                  <td>83.12</td>
+                  <td>78.65</td>
+                  <td>87.05</td>
+                  <td>83.17</td>
+                  <td>87.25</td>
+                  <td>80.39</td>
+                  <td>75.01</td>
+                  <td>72.39</td>
+                  <td>65.79</td>
+                  <td>68.54</td>
+                  <td>67.07</td>
+                  <td>73.69</td>
+                  <td>73.84</td>
+                  <td>73.34</td>
+                  <td>69.09</td>
+                  <td>71.59</td>
+                  <td>66.67</td>
+                  <td>66.67</td>
+                  <td>43.83</td>
+                  <td>52.83</td>
+                  <td>70.72</td>
+                  <td>71.47</td>
+                </tr>
+                <tr>
+                  <td>Z-Image-Turbo</td>
+                  <td>77.73</td>
+                  <td>80.05</td>
+                  <td>81.85</td>
+                  <td>81.59</td>
+                  <td>86.50</td>
+                  <td>87.00</td>
+                  <td>82.88</td>
+                  <td>79.99</td>
+                  <td>76.17</td>
+                  <td>77.77</td>
+                  <td>68.32</td>
+                  <td>74.69</td>
+                  <td>72.04</td>
+                  <td>75.24</td>
+                  <td>60.22</td>
+                  <td>73.33</td>
+                  <td>68.90</td>
+                  <td>71.92</td>
+                  <td>83.33</td>
+                  <td>93.33</td>
+                  <td>83.71</td>
+                  <td>84.62</td>
+                  <td>85.82</td>
+                  <td>77.24</td>
+                </tr>
+                <tr>
+                  <td>Z-Image</td>
+                  <td>80.20</td>
+                  <td>83.04</td>
+                  <td>78.36</td>
+                  <td>82.79</td>
+                  <td>79.50</td>
+                  <td>86.50</td>
+                  <td>80.45</td>
+                  <td>79.94</td>
+                  <td>75.13</td>
+                  <td>81.94</td>
+                  <td>72.89</td>
+                  <td>77.02</td>
+                  <td>72.91</td>
+                  <td>77.56</td>
+                  <td>66.99</td>
+                  <td>73.82</td>
+                  <td>73.89</td>
+                  <td>75.62</td>
+                  <td>90.00</td>
+                  <td>93.33</td>
+                  <td>94.84</td>
+                  <td>93.21</td>
+                  <td>88.06</td>
+                  <td>85.45</td>
+                </tr>
+                <tr>
+                  <td>Qwen-Image</td>
+                  <td>86.14</td>
+                  <td>86.83</td>
+                  <td>90.18</td>
+                  <td>87.22</td>
+                  <td>90.50</td>
+                  <td>91.50</td>
+                  <td>88.22</td>
+                  <td>90.78</td>
+                  <td>79.81</td>
+                  <td>79.38</td>
+                  <td>79.30</td>
+                  <td>80.88</td>
+                  <td>79.21</td>
+                  <td>78.94</td>
+                  <td>78.85</td>
+                  <td>81.69</td>
+                  <td>75.57</td>
+                  <td>78.59</td>
+                  <td>100.00</td>
+                  <td>100.00</td>
+                  <td>92.76</td>
+                  <td>89.14</td>
+                  <td>90.30</td>
+                  <td>91.42</td>
+                </tr>
+                <tr class="section-row">
+                  <td colspan="25">Autoregressive Models</td>
+                </tr>
+                <tr>
+                  <td>LightGen</td>
+                  <td>53.22</td>
+                  <td>43.41</td>
+                  <td>66.58</td>
+                  <td>47.91</td>
+                  <td>55.83</td>
+                  <td>47.33</td>
+                  <td>74.82</td>
+                  <td>45.82</td>
+                  <td>69.07</td>
+                  <td>50.57</td>
+                  <td>46.74</td>
+                  <td>41.53</td>
+                  <td>62.44</td>
+                  <td>40.82</td>
+                  <td>61.71</td>
+                  <td>50.47</td>
+                  <td>50.34</td>
+                  <td>45.34</td>
+                  <td>53.33</td>
+                  <td>53.33</td>
+                  <td>0.00</td>
+                  <td>6.83</td>
+                  <td>50.92</td>
+                  <td>50.55</td>
+                </tr>
+                <tr>
+                  <td>Infinity</td>
+                  <td>62.07</td>
+                  <td>62.32</td>
+                  <td>73.08</td>
+                  <td>75.41</td>
+                  <td>74.33</td>
+                  <td>76.83</td>
+                  <td>72.82</td>
+                  <td>77.57</td>
+                  <td>72.07</td>
+                  <td>71.82</td>
+                  <td>56.64</td>
+                  <td>54.98</td>
+                  <td>60.44</td>
+                  <td>55.57</td>
+                  <td>74.22</td>
+                  <td>64.71</td>
+                  <td>60.22</td>
+                  <td>59.71</td>
+                  <td>80.00</td>
+                  <td>73.33</td>
+                  <td>10.83</td>
+                  <td>23.83</td>
+                  <td>54.28</td>
+                  <td>56.89</td>
+                </tr>
+                <tr>
+                  <td>Janus-Pro</td>
+                  <td>66.50</td>
+                  <td>65.02</td>
+                  <td>79.33</td>
+                  <td>78.25</td>
+                  <td>79.33</td>
+                  <td>82.33</td>
+                  <td>78.32</td>
+                  <td>73.32</td>
+                  <td>80.32</td>
+                  <td>79.07</td>
+                  <td>59.71</td>
+                  <td>58.82</td>
+                  <td>66.07</td>
+                  <td>56.20</td>
+                  <td>70.46</td>
+                  <td>70.84</td>
+                  <td>67.22</td>
+                  <td>59.97</td>
+                  <td>60.00</td>
+                  <td>70.00</td>
+                  <td>28.83</td>
+                  <td>33.83</td>
+                  <td>65.84</td>
+                  <td>60.25</td>
+                </tr>
+                <tr>
+                  <td>GLM-Image</td>
+                  <td>81.01</td>
+                  <td>81.02</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                  <td>-</td>
+                </tr>
+                <tr class="bitdance-row">
+                  <td>BitDance</td>
+                  <td>79.64</td>
+                  <td>78.12</td>
+                  <td>78.79</td>
+                  <td>80.44</td>
+                  <td>83.50</td>
+                  <td>87.50</td>
+                  <td>77.22</td>
+                  <td>77.62</td>
+                  <td>75.64</td>
+                  <td>76.21</td>
+                  <td>72.19</td>
+                  <td>71.66</td>
+                  <td>72.89</td>
+                  <td>78.88</td>
+                  <td>68.06</td>
+                  <td>66.10</td>
+                  <td>70.63</td>
+                  <td>67.21</td>
+                  <td>96.67</td>
+                  <td>90.00</td>
+                  <td>87.78</td>
+                  <td>75.57</td>
+                  <td>84.33</td>
+                  <td>83.96</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="container">
+        <h3>Citation</h3>
+        <div class="code-block">
+          <button class="copy-button" type="button" aria-label="Copy citation">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+              <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+              <rect x="4" y="4" width="11" height="11" rx="2"></rect>
+            </svg>
+          </button>
+          <pre><code>@article{ai2026bitdance,
+  title   = {BitDance: Scaling Autoregressive Generative Models with Binary Tokens},
+  author  = {Ai, Yuang and Han, Jiaming and Zhuang, Shaobin and Hu, Xuefeng and Yang, Ziyan and Yang, Zhenheng and Huang, Huaibo and Yue, Xiangyu and Chen, Hao},
+  journal = {arXiv preprint arXiv:xxxx.xxxx},
+  year    = {2026}
+}</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div class="container">
+        <div>BitDance — Scaling Autoregressive Generative Models with Binary Tokens</div>
+        <div>
+          This page is co-designed with
+          <a href="https://www.trae.ai/" target="_blank" rel="noopener">TRAE</a> and GPT-5.2-Codex
+        </div>
+      </div>
+    </footer>
+    <script>
+      const innerTabs = document.querySelectorAll(".inner-tabs");
+      innerTabs.forEach((container) => {
+        const buttons = container.querySelectorAll(".inner-tab-button");
+        const panels = container.querySelectorAll(".inner-tab-panel");
+        buttons.forEach((button) => {
+          button.addEventListener("click", () => {
+            const target = button.getAttribute("data-inner");
+            buttons.forEach((btn) => btn.classList.remove("active"));
+            panels.forEach((panel) => panel.classList.remove("active"));
+            button.classList.add("active");
+            const panel = container.querySelector(`#${target}`);
+            if (panel) {
+              panel.classList.add("active");
+            }
+          });
+        });
+      });
+
+      const copyButton = document.querySelector(".copy-button");
+      if (copyButton) {
+        copyButton.addEventListener("click", async () => {
+          const code = copyButton.parentElement?.querySelector("code");
+          const text = code?.textContent || "";
+          if (!text) {
+            return;
+          }
+          try {
+            await navigator.clipboard.writeText(text.trim());
+            copyButton.setAttribute("aria-label", "Copied");
+            copyButton.classList.add("copied");
+            setTimeout(() => {
+              copyButton.setAttribute("aria-label", "Copy citation");
+              copyButton.classList.remove("copied");
+            }, 1400);
+          } catch (error) {
+            copyButton.setAttribute("aria-label", "Copy failed");
+            setTimeout(() => {
+              copyButton.setAttribute("aria-label", "Copy citation");
+            }, 1400);
+          }
+        });
+      }
+    </script>
+  </body>
+</html>

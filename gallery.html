@@ -1,0 +1,542 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BitDance Image Gallery</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #0f1115;
+        --bg-card: #141823;
+        --bg-soft: #f3f5f9;
+        --text: #0b0f1a;
+        --text-invert: #f8f9fc;
+        --text-muted: #5e6675;
+        --accent: #3b5bfd;
+        --accent-strong: #2e4bf0;
+        --border: #e4e7ee;
+        --shadow: 0 16px 40px rgba(15, 23, 42, 0.14);
+        --radius: 14px;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: "Plus Jakarta Sans", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        color: var(--text);
+        background: #fbfcff;
+        line-height: 1.7;
+      }
+      a {
+        color: inherit;
+        text-decoration: none;
+      }
+      header {
+        background: radial-gradient(circle at top left, #1a2040 0%, #0f1115 50%, #0b0d12 100%);
+        color: var(--text-invert);
+        padding: 48px 0 56px;
+      }
+      .container {
+        width: min(1200px, 92vw);
+        margin: 0 auto;
+      }
+      .header-content {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .header-content h1 {
+        font-family: "Manrope", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        font-size: clamp(2rem, 2.6vw + 1.2rem, 3rem);
+        line-height: 1.1;
+      }
+      .hero-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+      }
+      .button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 18px;
+        border-radius: 999px;
+        font-weight: 600;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
+      }
+      .button.primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .button.primary:hover {
+        background: var(--accent-strong);
+      }
+      .button.ghost {
+        border-color: rgba(248, 249, 252, 0.4);
+        color: #fff;
+      }
+      .header-content p {
+        color: rgba(248, 249, 252, 0.78);
+        max-width: 720px;
+      }
+      .section {
+        padding: 60px 0 80px;
+      }
+      .gallery-header {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin-bottom: 26px;
+      }
+      .gallery-grid {
+        --column-count: 3;
+        position: relative;
+        width: 100%;
+        gap: 18px;
+      }
+      .gallery-item {
+        position: absolute;
+        background: #fff;
+        border-radius: 14px;
+        overflow: hidden;
+        box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        cursor: zoom-in;
+        transform: translateY(6px);
+        opacity: 0;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, opacity 0.3s ease;
+      }
+      .gallery-item.loaded {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      .gallery-item:hover {
+        transform: translateY(-4px) scale(1.01);
+        box-shadow: 0 18px 34px rgba(15, 23, 42, 0.16);
+      }
+      .gallery-item.pressed {
+        transform: scale(0.98);
+      }
+      .gallery-item img {
+        width: 100%;
+        display: block;
+        transition: transform 0.35s ease;
+      }
+      .gallery-item:hover img {
+        transform: scale(1.03);
+      }
+      .gallery-status {
+        text-align: center;
+        color: var(--text-muted);
+        margin-top: 8px;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px;
+        border-radius: 999px;
+        background: #f2f4fa;
+      }
+      .gallery-status .spinner {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid rgba(59, 91, 253, 0.2);
+        border-top-color: var(--accent);
+        animation: spin 0.9s linear infinite;
+        display: none;
+      }
+      .gallery-status.is-loading .spinner {
+        display: inline-block;
+      }
+      .gallery-modal {
+        position: fixed;
+        inset: 0;
+        background: rgba(11, 13, 18, 0.72);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 20;
+        padding: 24px;
+        animation: fadeIn 0.25s ease;
+      }
+      .gallery-modal.active {
+        display: flex;
+      }
+      .modal-card {
+        width: min(1100px, 92vw);
+        max-height: 90vh;
+        background: #fff;
+        border-radius: 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr);
+        gap: 20px;
+        padding: 20px;
+        position: relative;
+        overflow: hidden;
+        transform: scale(0.96);
+        opacity: 0;
+        animation: popIn 0.25s ease forwards;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+        }
+        to {
+          opacity: 1;
+        }
+      }
+      @keyframes popIn {
+        to {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+      .modal-image {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f3f5f9;
+        border-radius: 12px;
+        overflow: hidden;
+      }
+      .modal-image img {
+        max-width: 100%;
+        max-height: 80vh;
+        width: auto;
+        height: auto;
+        display: block;
+      }
+      .modal-prompt {
+        overflow-y: auto;
+        padding-right: 6px;
+        color: var(--text);
+        font-size: 1rem;
+        line-height: 1.7;
+        white-space: pre-wrap;
+      }
+      .modal-close {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        border: none;
+        background: #f0f2f7;
+        border-radius: 999px;
+        width: 36px;
+        height: 36px;
+        font-size: 20px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      @media (max-width: 980px) {
+        .gallery-grid {
+          --column-count: 2;
+        }
+        .modal-card {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 620px) {
+        .gallery-grid {
+          --column-count: 1;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div class="container">
+        <div class="header-content">
+          <h1>BitDance: Scaling Autoregressive Generative Models with Binary Tokens</h1>
+          <div class="hero-actions">
+            <a class="button primary" href="arxivxxx" target="_blank">Paper</a>
+            <a class="button ghost" href="https://github.com/shallowdream204/BitDance" target="_blank">Code</a>
+            <a class="button ghost" href="https://huggingface.co/collections/shallowdream204/bitdance" target="_blank">Models</a>
+            <a class="button ghost" href="https://huggingface.co/spaces/shallowdream204/BitDance-14B-64x" target="_blank">Demo</a>
+          </div>
+          <p>Scroll to load more samples. Click any image to view the prompt.</p>
+        </div>
+      </div>
+    </header>
+
+    <section class="section">
+      <div class="container">
+        <!-- <div class="gallery-header"> -->
+          <!-- <h2>Gallery</h2> -->
+          <!-- <p>Images are loaded in batches as you scroll.</p> -->
+        <!-- </div> -->
+        <div id="galleryGrid" class="gallery-grid"></div>
+        <div id="galleryStatus" class="gallery-status is-loading">
+          <span class="spinner"></span>
+          <span class="status-text">Loading gallery...</span>
+        </div>
+        <div id="gallerySentinel"></div>
+      </div>
+    </section>
+
+    <div id="galleryModal" class="gallery-modal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true">
+        <button id="galleryClose" class="modal-close" type="button" aria-label="Close">×</button>
+        <div class="modal-image">
+          <img id="modalImage" src="" alt="Gallery image" />
+        </div>
+        <div id="modalPrompt" class="modal-prompt"></div>
+      </div>
+    </div>
+
+    <script>
+      const galleryGrid = document.getElementById("galleryGrid");
+      const galleryStatus = document.getElementById("galleryStatus");
+      const gallerySentinel = document.getElementById("gallerySentinel");
+      const galleryModal = document.getElementById("galleryModal");
+      const modalImage = document.getElementById("modalImage");
+      const modalPrompt = document.getElementById("modalPrompt");
+      const galleryClose = document.getElementById("galleryClose");
+      const galleryStatusText = galleryStatus?.querySelector(".status-text");
+      let galleryItems = [];
+      let galleryIndex = 0;
+      const batchSize = 12;
+      let layoutState = {
+        columnCount: 3,
+        gap: 18,
+        columnWidth: 0,
+        columnHeights: [],
+      };
+      const renderedFigures = [];
+      let nextLayoutIndex = 0;
+      let resizeTimer;
+
+      const getColumnCount = () => {
+        if (!galleryGrid) {
+          return 3;
+        }
+        const value = getComputedStyle(galleryGrid)
+          .getPropertyValue("--column-count")
+          .trim();
+        const parsed = Number.parseInt(value, 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
+      };
+
+      const getGap = () => {
+        if (!galleryGrid) {
+          return 18;
+        }
+        const value = getComputedStyle(galleryGrid).gap;
+        const parsed = Number.parseFloat(value);
+        return Number.isFinite(parsed) ? parsed : 18;
+      };
+
+      const initLayout = () => {
+        if (!galleryGrid) {
+          return;
+        }
+        const columnCount = getColumnCount();
+        const gap = getGap();
+        const gridWidth = galleryGrid.clientWidth;
+        const totalGap = gap * (columnCount - 1);
+        const columnWidth = Math.max((gridWidth - totalGap) / columnCount, 0);
+        layoutState = {
+          columnCount,
+          gap,
+          columnWidth,
+          columnHeights: new Array(columnCount).fill(0),
+        };
+        galleryGrid.style.height = "0px";
+      };
+
+      const placeItem = (figure) => {
+        if (!galleryGrid) {
+          return;
+        }
+        const { columnCount, gap, columnWidth, columnHeights } = layoutState;
+        if (!columnCount || !columnWidth) {
+          return;
+        }
+        figure.style.width = `${columnWidth}px`;
+        const minHeight = Math.min(...columnHeights);
+        const columnIndex = columnHeights.indexOf(minHeight);
+        const x = (columnWidth + gap) * columnIndex;
+        const y = columnHeights[columnIndex];
+        figure.style.left = `${x}px`;
+        figure.style.top = `${y}px`;
+        columnHeights[columnIndex] = y + figure.offsetHeight + gap;
+        const maxHeight = Math.max(...columnHeights);
+        galleryGrid.style.height = `${maxHeight}px`;
+      };
+
+      const layoutReadyItems = () => {
+        while (nextLayoutIndex < renderedFigures.length) {
+          const figure = renderedFigures[nextLayoutIndex];
+          if (!figure.dataset.ready) {
+            break;
+          }
+          placeItem(figure);
+          nextLayoutIndex += 1;
+        }
+      };
+
+      const relayoutAll = () => {
+        initLayout();
+        nextLayoutIndex = 0;
+        layoutReadyItems();
+      };
+
+      const updateStatus = (text, isLoading = false) => {
+        if (!galleryStatus || !galleryStatusText) {
+          return;
+        }
+        galleryStatusText.textContent = text;
+        galleryStatus.classList.toggle("is-loading", isLoading);
+      };
+
+      const appendBatch = () => {
+        if (!galleryGrid || galleryIndex >= galleryItems.length) {
+          updateStatus("All images loaded.");
+          return;
+        }
+        const slice = galleryItems.slice(galleryIndex, galleryIndex + batchSize);
+        slice.forEach((item) => {
+          const figure = document.createElement("figure");
+          figure.className = "gallery-item";
+          const figureIndex = renderedFigures.length;
+          renderedFigures.push(figure);
+          const img = document.createElement("img");
+          img.src = item.image_path;
+          img.alt = item.prompt.slice(0, 80);
+          img.loading = "lazy";
+          img.addEventListener("load", () => {
+            figure.classList.add("loaded");
+            figure.dataset.ready = "true";
+            layoutReadyItems();
+          });
+          img.addEventListener("error", () => {
+            figure.classList.add("loaded");
+            figure.dataset.ready = "true";
+            layoutReadyItems();
+          });
+          figure.appendChild(img);
+          figure.addEventListener("click", () => openModal(item));
+          figure.addEventListener("pointerdown", () => {
+            figure.classList.add("pressed");
+          });
+          figure.addEventListener("pointerup", () => {
+            figure.classList.remove("pressed");
+          });
+          figure.addEventListener("pointerleave", () => {
+            figure.classList.remove("pressed");
+          });
+          figure.dataset.index = String(figureIndex);
+          galleryGrid.appendChild(figure);
+        });
+        galleryIndex += slice.length;
+        if (galleryIndex >= galleryItems.length) {
+          updateStatus("All images loaded.");
+        } else {
+          updateStatus(`Loading more... ${galleryIndex} / ${galleryItems.length}`, true);
+        }
+      };
+
+      const openModal = (item) => {
+        if (!galleryModal || !modalImage || !modalPrompt) {
+          return;
+        }
+        modalImage.src = item.image_path;
+        modalPrompt.textContent = item.prompt;
+        galleryModal.classList.add("active");
+        galleryModal.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+      };
+
+      const closeModal = () => {
+        if (!galleryModal || !modalImage || !modalPrompt) {
+          return;
+        }
+        galleryModal.classList.remove("active");
+        galleryModal.setAttribute("aria-hidden", "true");
+        modalImage.src = "";
+        modalPrompt.textContent = "";
+        document.body.style.overflow = "";
+      };
+
+      if (galleryClose) {
+        galleryClose.addEventListener("click", closeModal);
+      }
+      if (galleryModal) {
+        galleryModal.addEventListener("click", (event) => {
+          if (event.target === galleryModal) {
+            closeModal();
+          }
+        });
+      }
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeModal();
+        }
+      });
+
+      if (gallerySentinel) {
+        const observer = new IntersectionObserver(
+          (entries) => {
+            if (entries[0]?.isIntersecting) {
+              appendBatch();
+            }
+          },
+          { rootMargin: "200px" }
+        );
+        observer.observe(gallerySentinel);
+      }
+
+      if (galleryGrid) {
+        initLayout();
+        fetch("gallery.json")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Failed to load gallery");
+            }
+            return response.json();
+          })
+          .then((data) => {
+            galleryItems = Array.isArray(data) ? data : [];
+            galleryIndex = 0;
+            if (galleryItems.length === 0) {
+              updateStatus("No images found.");
+              return;
+            }
+            updateStatus(`Loaded 0 / ${galleryItems.length}`, true);
+            appendBatch();
+          })
+          .catch(() => {
+            updateStatus("Failed to load gallery.json");
+          });
+      }
+
+      window.addEventListener("resize", () => {
+        if (!galleryGrid) {
+          return;
+        }
+        if (resizeTimer) {
+          window.clearTimeout(resizeTimer);
+        }
+        resizeTimer = window.setTimeout(() => {
+          relayoutAll();
+        }, 120);
+      });
+    </script>
+  </body>
+</html>
