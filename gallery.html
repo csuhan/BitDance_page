@@ -68,11 +68,25 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        padding: 12px 18px;
+        padding: 8px 14px;
         border-radius: 999px;
         font-weight: 600;
+        font-size: 0.95rem;
         border: 1px solid transparent;
         transition: all 0.2s ease;
+      }
+      .button-icon {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+        display: inline-block;
+        transition: filter 0.2s ease, transform 0.2s ease;
+      }
+      img.button-icon,
+      svg.button-icon {
+        width: 14px;
+        height: 14px;
+        display: block;
       }
       .button.primary {
         background: var(--accent);
@@ -81,9 +95,21 @@
       .button.primary:hover {
         background: var(--accent-strong);
       }
+      .button.primary:hover .button-icon {
+        filter: brightness(0) saturate(100%) invert(90%) sepia(6%) saturate(556%)
+          hue-rotate(194deg) brightness(102%) contrast(101%);
+      }
       .button.ghost {
         border-color: rgba(248, 249, 252, 0.4);
         color: #fff;
+      }
+      .button.ghost:hover {
+        color: #dbe4ff;
+        border-color: rgba(219, 228, 255, 0.7);
+      }
+      .button.ghost:hover .button-icon {
+        filter: brightness(0) saturate(100%) invert(86%) sepia(9%) saturate(559%)
+          hue-rotate(191deg) brightness(103%) contrast(101%);
       }
       .header-content p {
         color: rgba(248, 249, 252, 0.78);
@@ -265,10 +291,19 @@
         <div class="header-content">
           <h1>BitDance: Scaling Autoregressive Generative Models with Binary Tokens</h1>
           <div class="hero-actions">
-            <a class="button primary" href="arxivxxx" target="_blank">Paper</a>
-            <a class="button ghost" href="https://github.com/shallowdream204/BitDance" target="_blank">Code</a>
-            <a class="button ghost" href="https://huggingface.co/collections/shallowdream204/bitdance" target="_blank">Models</a>
-            <a class="button ghost" href="https://huggingface.co/spaces/shallowdream204/BitDance-14B-64x" target="_blank">Demo</a>
+            <a class="button primary" href="arxivxxx" target="_blank">
+              <img class="button-icon" src="https://cdn.simpleicons.org/arxiv/ffffff" alt="" />
+              Paper
+            </a>
+            <a class="button ghost" href="https://github.com/shallowdream204/BitDance" target="_blank"
+              ><img class="button-icon" src="https://cdn.simpleicons.org/github/ffffff" alt="" />Code</a
+            >
+            <a class="button ghost" href="https://huggingface.co/collections/shallowdream204/bitdance" target="_blank"
+              ><img class="button-icon" src="https://cdn.simpleicons.org/huggingface/ffffff" alt="" />Models</a
+            >
+            <a class="button ghost" href="https://huggingface.co/spaces/shallowdream204/BitDance-14B-64x" target="_blank"
+              ><img class="button-icon" src="https://cdn.simpleicons.org/huggingface/ffffff" alt="" />Demo</a
+            >
           </div>
           <p>Scroll to load more samples. Click any image to view the prompt.</p>
         </div>
